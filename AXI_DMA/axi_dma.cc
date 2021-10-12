@@ -4,7 +4,7 @@ AXI_DMA::AXI_DMA() {}
 
 AXI_DMA::~AXI_DMA() {}
 
-int AXI_DMA::setInterruptInit(XScuGic *InstancePtr, u16 IntrID, XAxiDma *XAxiDmaPtr)
+int AXI_DMA::setInterruptInit(u16 IntrID)
 {
     XScuGic_Config *Config;
     int Status;
@@ -21,17 +21,17 @@ int AXI_DMA::setInterruptInit(XScuGic *InstancePtr, u16 IntrID, XAxiDma *XAxiDma
 //    if (Status != XST_SUCCESS)
 //        return XST_FAILURE;
 
-    XScuGic_Enable(InstancePtr, IntrID);
+    XScuGic_Enable(&INST, IntrID);
 
     Xil_ExceptionInit();
     Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT, (Xil_ExceptionHandler)XScuGic_InterruptHandler,
-                                 InstancePtr);
+                                 &INST);
     Xil_ExceptionEnable();
 
     return XST_SUCCESS;
 }
 
-long int AXI_DMA::setup(u16 Device_id)
+long int AXI_DMA::setup()
 {
     XAxiDma_Config *CfgPtr;
     int Status;
@@ -58,7 +58,7 @@ long int AXI_DMA::setup(u16 Device_id)
         return XST_FAILURE;
     }
 
-    Status = setInterruptInit(&INST, INTR_ID, &AxiDma);
+    Status = setInterruptInit(INTR_ID);
     if (Status != XST_SUCCESS)
         return XST_FAILURE;
 
@@ -73,6 +73,30 @@ long int AXI_DMA::setup(u16 Device_id)
 
 long int AXI_DMA::trans_DMA_device(u8 *sendBuffer, int length)
 {
+
+    int Status = 0;
+
+    Xil_DCacheFlushRange((UINTPTR)sendBuffer, length);
+
+    Status = XAxiDma_SimpleTransfer(&this->AxiDma, (UINTPTR)sendBuffer, length, XAXIDMA_DMA_TO_DEVICE);
+
+    if (Status != XST_SUCCESS)
+    {
+        throw "DMA to slaver is not success!\n";
+        return XST_FAILURE;
+    }
+
+    while (XAxiDma_Busy(&AxiDma, XAXIDMA_DMA_TO_DEVICE))
+    {
+        ;
+    }
+
+    return XST_SUCCESS;
+}
+
+long int AXI_DMA::trans_DMA_device(int* sendBuffer, int length){
+
+    length = length * 4;
 
     int Status = 0;
 

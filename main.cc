@@ -12,9 +12,12 @@
 #include "xtime_l.h"
 #endif
 
+#if defined __ARM__ && defined __DMA__
+#include "AXI_DMA/axi_dma.h"
+#endif
+
 #if defined __ARM__
 #define URAT_DEVICE_ID XPAR_XUARTPS_0_DEVICE_ID
-
 #endif
 
 using namespace std;
@@ -45,7 +48,7 @@ int main()
     
     
 #endif
-#if defined __ARM__
+#if defined __ARM__ && defined __CAL__
     int Status;
     XUartPs Uart_Ps;
     XUartPs_Config *Config;
@@ -81,6 +84,26 @@ int main()
     }
 
     return 0;
+
+#endif
+
+#if defined __ARM__ && defined __DMA__
+
+    AXI_DMA dma;
+
+    int *a;
+
+    a = new int[128];
+
+    for(int i = 0; i < 128; i++) {
+        a[i] = i;
+    }
+
+    dma.setup();
+
+    dma.setInterruptInit(INTR_ID);
+
+    dma.trans_DMA_device(a, 128);
 
 #endif
 }
