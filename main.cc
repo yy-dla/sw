@@ -93,6 +93,12 @@ int main()
 
     int *a;
 
+    MobileNet m;
+
+    m.writeReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET, 0xff);
+
+    cout << m.readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) << endl;
+
     a = new int[128];
 
     for(int i = 0; i < 128; i++) {

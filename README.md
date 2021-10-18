@@ -9,7 +9,7 @@ Before implementing on FPGA or ASIC, we should build the model by software. And 
 |Windows|`__WINDOWS__`|
 |Cortex-A9|`__ARM__`|  
 
-If you use Cortex-A9 platform, do not forget to adjust the heap size to `0x1fffffff` to prevent the overflow in file `lscript.ld`.
+If you use Cortex-A9 platform, do not forget to adjust the heap size to `0x1fffffff` in file `lscript.ld` to prevent the overflow.
 
 If you want to know how I train the MobileNet, please go to this link:    
 [94.79% Accuracy by Q_MobileNet_v1](https://www.kaggle.com/mzc6838/94-79-accuracy-by-q-mobilenet-v1)  

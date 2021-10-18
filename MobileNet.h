@@ -4,18 +4,30 @@
 #include <string>
 #include "BatchNormalization.h"
 
+#if defined __ARM__
+#include "xil_types.h"
+#include "xstatus.h"
+
+#define MOBILENET_S00_AXI_SLV_STATE_REG_OFFSET      0
+#define MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET     4
+#define MOBILENET_S00_AXI_SLV_F_W_OFFSET            8
+#define MOBILENET_S00_AXI_SLV_F_H_OFFSET            12
+#define MOBILENET_S00_AXI_SLV_STRIDE_OFFSET         16
+#define MOBILENET_S00_AXI_SLV_K_W_OFFSET            20
+#define MOBILENET_S00_AXI_SLV_K_H_OFFSET            24
+#define MOBILENET_S00_AXI_SLV_CHANNEL_OFFSET        28
+#define MOBILENET_S00_AXI_SLV_N_OFFSET              32
+
+#define MOBILENET_BASEADDR                          XPAR_MOBILENET_0_S00_AXI_BASEADDR
+
+#endif
+
 class MobileNet
 {
 private:
+
     bool hasBeenInit = false;
 
-    // Heap
-    //float map1[1024][224][224];
-    //float map2[1024][224][224];
-    //float globalAvgPoolMap[1024];
-    //float denseMap[43];
-    
-   //  float map2[1024][224][224];
 public:
 
     float layer_1_weight[32][3][9];
@@ -32,90 +44,6 @@ public:
 
     BatchNormalization BN;
 
-    /*float*** conv2d_weight;
-    float*** depthwise_conv2d_weight;
-    float** conv2d_1_weight;
-    float*** depthwise_conv2d_1_weight;
-    float** conv2d_2_weight;
-    float*** depthwise_conv2d_2_weight;
-    float** conv2d_3_weight;
-    float*** depthwise_conv2d_3_weight;
-    float** conv2d_4_weight;
-    float*** depthwise_conv2d_4_weight;
-    float** conv2d_5_weight;
-    float*** depthwise_conv2d_5_weight;
-    float** conv2d_6_weight;
-    float*** depthwise_conv2d_6_weight;
-    float** conv2d_7_weight;
-    float*** depthwise_conv2d_7_weight;
-    float** conv2d_8_weight;
-    float*** depthwise_conv2d_8_weight;
-    float** conv2d_9_weight;
-    float*** depthwise_conv2d_9_weight;
-    float** conv2d_10_weight;
-    float*** depthwise_conv2d_10_weight;
-    float** conv2d_11_weight;
-    float*** depthwise_conv2d_11_weight;
-    float** conv2d_12_weight;
-    float*** depthwise_conv2d_12_weight;
-    float** conv2d_13_weight;
-    float* conv2d_bias;
-    float* depthwise_conv2d_bias;
-    float* conv2d_1_bias;
-    float* depthwise_conv2d_1_bias;
-    float* conv2d_2_bias;
-    float* depthwise_conv2d_2_bias;
-    float* conv2d_3_bias;
-    float* depthwise_conv2d_3_bias;
-    float* conv2d_4_bias;
-    float* depthwise_conv2d_4_bias;
-    float* conv2d_5_bias;
-    float* depthwise_conv2d_5_bias;
-    float* conv2d_6_bias;
-    float* depthwise_conv2d_6_bias;
-    float* conv2d_7_bias;
-    float* depthwise_conv2d_7_bias;
-    float* conv2d_8_bias;
-    float* depthwise_conv2d_8_bias;
-    float* conv2d_9_bias;
-    float* depthwise_conv2d_9_bias;
-    float* conv2d_10_bias;
-    float* depthwise_conv2d_10_bias;
-    float* conv2d_11_bias;
-    float* depthwise_conv2d_11_bias;
-    float* conv2d_12_bias;
-    float* depthwise_conv2d_12_bias;
-    float* conv2d_13_bias;*/
-
-   /* BatchNormalization BN_0;
-    BatchNormalization BN_1;
-    BatchNormalization BN_2;
-    BatchNormalization BN_3;
-    BatchNormalization BN_4;
-    BatchNormalization BN_5;
-    BatchNormalization BN_6;
-    BatchNormalization BN_7;
-    BatchNormalization BN_8;
-    BatchNormalization BN_9;
-    BatchNormalization BN_10;
-    BatchNormalization BN_11;
-    BatchNormalization BN_12;
-    BatchNormalization BN_13;
-    BatchNormalization BN_14;
-    BatchNormalization BN_15;
-    BatchNormalization BN_16;
-    BatchNormalization BN_17;
-    BatchNormalization BN_18;
-    BatchNormalization BN_19;
-    BatchNormalization BN_20;
-    BatchNormalization BN_21;
-    BatchNormalization BN_22;
-    BatchNormalization BN_23;
-    BatchNormalization BN_24;
-    BatchNormalization BN_25;
-    BatchNormalization BN_26;*/
-    
-public:
     MobileNet();
     ~MobileNet();
 
@@ -177,11 +105,11 @@ public:
      * @param f_w input feature map width
      * @param f_h input feature map height
      * @param channel channel size
-     * @param gamma[channel] gamma array (¦Ã)
-     * @param beta[channel]  beta array (¦Â)
-     * @param mean[channel]  the mean of the data after train (¦Ì)
-     * @param variance[channel] the variance of the data after train (¦Ò^2)
-     * @param r the redundant part (¦Å), default 0.003
+     * @param gamma[channel] gamma array (ï¿½ï¿½)
+     * @param beta[channel]  beta array (ï¿½ï¿½)
+     * @param mean[channel]  the mean of the data after train (ï¿½ï¿½)
+     * @param variance[channel] the variance of the data after train (ï¿½ï¿½^2)
+     * @param r the redundant part (ï¿½ï¿½), default 0.003
      * @param f[][][] feature map
     */
     void batchNormalization(int f_w, int f_h, int channel, float f[1024][224][224], float* gamma, float* beta, float* mean, float* variance, float r);
@@ -252,6 +180,17 @@ public:
     void invoke(int w, int h, int channel, float image[3][224][224], float result[43]);
 
     void init();
+
+    /**
+     ** For ARM-9 registers reading and writing.
+    */
+   #if defined __ARM__
+
+    void writeReg(int offset, int data);
+
+    int readReg(int offset);
+
+   #endif
 };
 
 #endif // __MOBILENET_H__
