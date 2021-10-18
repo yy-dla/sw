@@ -112,4 +112,6 @@ int main()
     dma.trans_DMA_device(a, 128);
 
 #endif
+
+    return 0;
 }
