@@ -1,10 +1,16 @@
 #include "axi_dma.h"
 
+static XAxiDma AxiDma;
+static XScuGic INST;
+
+static u8 rxIrq = 1;
+static u8 txIrq = 1;
+
 AXI_DMA::AXI_DMA() {}
 
 AXI_DMA::~AXI_DMA() {}
 
-int AXI_DMA::setInterruptInit(u16 IntrID)
+int AXI_DMA::setInterruptInit(u16 txIntrId, u16 rxIntrId)
 {
     XScuGic_Config *Config;
     int Status;
@@ -16,12 +22,20 @@ int AXI_DMA::setInterruptInit(u16 IntrID)
     if (Status != XST_SUCCESS)
         return XST_FAILURE;
 
-//    Status = XScuGic_Connect(InstancePtr, IntrID, (Xil_ExceptionHandler)CheckData, XAxiDmaPtr);
+    // Status = XScuGic_Connect(InstancePtr, IntrID, (Xil_ExceptionHandler)CheckData, XAxiDmaPtr);
+    Status = XScuGic_Connect(&INST, rxIntrId,
+            (Xil_ExceptionHandler)rxIrqHandler,
+            &AxiDma);
+
+    Status = XScuGic_Connect(&INST, txIntrId,
+            (Xil_ExceptionHandler)txIrqHandler,
+            &AxiDma);
 //
 //    if (Status != XST_SUCCESS)
 //        return XST_FAILURE;
 
-    XScuGic_Enable(&INST, IntrID);
+    XScuGic_Enable(&INST, txIntrId);
+    XScuGic_Enable(&INST, rxIntrId);
 
     Xil_ExceptionInit();
     Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT, (Xil_ExceptionHandler)XScuGic_InterruptHandler,
@@ -58,14 +72,19 @@ long int AXI_DMA::setup()
         return XST_FAILURE;
     }
 
-    Status = setInterruptInit(INTR_ID);
+    Status = setInterruptInit(TX_INTR_ID, RX_INTR_ID);
     if (Status != XST_SUCCESS)
         return XST_FAILURE;
-
-    // Disable MM2S interrupt, Enable S2MM interrupt.
-    XAxiDma_IntrEnable(&AxiDma, XAXIDMA_IRQ_IOC_MASK,
+    // Disable all interrupt.
+    XAxiDma_IntrDisable(&AxiDma, XAXIDMA_IRQ_ALL_MASK,
                        XAXIDMA_DEVICE_TO_DMA);
     XAxiDma_IntrDisable(&AxiDma, XAXIDMA_IRQ_ALL_MASK,
+                       XAXIDMA_DMA_TO_DEVICE);
+    
+    // enable all interrupt.
+    XAxiDma_IntrEnable(&AxiDma, XAXIDMA_IRQ_ALL_MASK,
+                       XAXIDMA_DEVICE_TO_DMA);
+    XAxiDma_IntrEnable(&AxiDma, XAXIDMA_IRQ_ALL_MASK,
                         XAXIDMA_DMA_TO_DEVICE);
 
     return XST_SUCCESS;
@@ -78,7 +97,7 @@ long int AXI_DMA::trans_DMA_device(u8 *sendBuffer, int length)
 
     Xil_DCacheFlushRange((UINTPTR)sendBuffer, length);
 
-    Status = XAxiDma_SimpleTransfer(&this->AxiDma, (UINTPTR)sendBuffer, length, XAXIDMA_DMA_TO_DEVICE);
+    Status = XAxiDma_SimpleTransfer(&AxiDma, (UINTPTR)sendBuffer, length, XAXIDMA_DMA_TO_DEVICE);
 
     if (Status != XST_SUCCESS)
     {
@@ -102,7 +121,7 @@ long int AXI_DMA::trans_DMA_device(int* sendBuffer, int length){
 
     Xil_DCacheFlushRange((UINTPTR)sendBuffer, length);
 
-    Status = XAxiDma_SimpleTransfer(&this->AxiDma, (UINTPTR)sendBuffer, length, XAXIDMA_DMA_TO_DEVICE);
+    Status = XAxiDma_SimpleTransfer(&AxiDma, (UINTPTR)sendBuffer, length, XAXIDMA_DMA_TO_DEVICE);
 
     if (Status != XST_SUCCESS)
     {
@@ -117,3 +136,56 @@ long int AXI_DMA::trans_DMA_device(int* sendBuffer, int length){
 
     return XST_SUCCESS;
 }
+
+long int AXI_DMA::trans_device_DMA(int* receiveBuffer, int length){
+    length = length * 4;
+
+    int Status = 0;
+
+    // Xil_DCacheFlushRange((UINTPTR)receiveBuffer, length);
+
+    Status = XAxiDma_SimpleTransfer(&AxiDma, (UINTPTR)receiveBuffer, length, XAXIDMA_DEVICE_TO_DMA);
+
+    if (Status != XST_SUCCESS)
+    {
+        throw "slaver to DMA is not success!\n";
+        return XST_FAILURE;
+    }
+
+    // while (XAxiDma_Busy(&AxiDma, XAXIDMA_DEVICE_TO_DMA))
+    while(rxIrq)
+    {
+        ;
+    }
+    rxIrq = 1;
+
+    Xil_DCacheInvalidateRange((UINTPTR)receiveBuffer, length);
+
+    return XST_SUCCESS;
+}
+
+void AXI_DMA::rxIrqHandler(void *CallBackRef){
+    XAxiDma_IntrAckIrq(&AxiDma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DEVICE_TO_DMA) ;
+    rxIrq = 0;
+}
+
+void AXI_DMA::txIrqHandler(void *CallBackRef){
+    XAxiDma_IntrAckIrq(&AxiDma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DMA_TO_DEVICE);
+    txIrq = 0;
+}
+
+void AXI_DMA::resetDma(){
+    XAxiDma_Reset(&AxiDma);
+}
+
+#if defined __ARM__
+
+void AXI_DMA::writeReg(int offset, int data){
+    Xil_Out32((MOBILENET_BASEADDR + offset), (unsigned int)data);
+}
+
+int AXI_DMA::readReg(int offset){
+    return Xil_In32(MOBILENET_BASEADDR + offset);
+}
+
+#endif

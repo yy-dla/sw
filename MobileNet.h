@@ -8,18 +8,6 @@
 #include "xil_types.h"
 #include "xstatus.h"
 
-#define MOBILENET_S00_AXI_SLV_STATE_REG_OFFSET      0
-#define MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET     4
-#define MOBILENET_S00_AXI_SLV_F_W_OFFSET            8
-#define MOBILENET_S00_AXI_SLV_F_H_OFFSET            12
-#define MOBILENET_S00_AXI_SLV_STRIDE_OFFSET         16
-#define MOBILENET_S00_AXI_SLV_K_W_OFFSET            20
-#define MOBILENET_S00_AXI_SLV_K_H_OFFSET            24
-#define MOBILENET_S00_AXI_SLV_CHANNEL_OFFSET        28
-#define MOBILENET_S00_AXI_SLV_N_OFFSET              32
-
-#define MOBILENET_BASEADDR                          XPAR_MOBILENET_0_S00_AXI_BASEADDR
-
 #endif
 
 class MobileNet
@@ -180,17 +168,6 @@ public:
     void invoke(int w, int h, int channel, float image[3][224][224], float result[43]);
 
     void init();
-
-    /**
-     ** For ARM-9 registers reading and writing.
-    */
-   #if defined __ARM__
-
-    void writeReg(int offset, int data);
-
-    int readReg(int offset);
-
-   #endif
 };
 
 #endif // __MOBILENET_H__

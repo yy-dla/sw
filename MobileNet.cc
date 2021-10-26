@@ -881,15 +881,3 @@ void MobileNet::init()
 
     this->hasBeenInit = true;
 }
-
-#if defined __ARM__
-
-void MobileNet::writeReg(int offset, int data){
-    Xil_Out32((MOBILENET_BASEADDR + offset), (unsigned int)data);
-}
-
-int MobileNet::readReg(int offset){
-    return Xil_In32(MOBILENET_BASEADDR + offset);
-}
-
-#endif

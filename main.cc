@@ -91,25 +91,45 @@ int main()
 
     AXI_DMA dma;
 
-    int *a;
+    int *a, *b;
 
-    MobileNet m;
+    // MobileNet m;
 
-    m.writeReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET, 0xff);
+    // m.writeReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET, 0xff);
 
-    cout << m.readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) << endl;
+    // cout << m.readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) << endl;
 
-    a = new int[128];
+    a = new int[216];
+    b = new int[220];
 
-    for(int i = 0; i < 128; i++) {
+    for(int i = 0; i < 216; i++) {
         a[i] = i;
     }
 
+    dma.resetDma();
+
     dma.setup();
 
-    dma.setInterruptInit(INTR_ID);
+    // dma.setInterruptInit(TX_INTR_ID, RX_INTR_ID);
 
-    dma.trans_DMA_device(a, 128);
+    for (int j = 0; j < 2; j++){
+        dma.writeReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET, 0x7);
+
+        dma.trans_DMA_device(a, 216); // W
+
+        dma.writeReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET, 0x5);
+
+        dma.trans_device_DMA(b, 300); // R
+
+//        for (int i = 0; i < 216; i++){
+//            cout << b[i] << " ";
+//            // a[i] += b[i + 4];
+//        }
+//
+//        cout << endl;
+
+        
+    }
 
 #endif
 
