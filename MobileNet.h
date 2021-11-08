@@ -7,6 +7,8 @@
 #if defined __ARM__
 #include "xil_types.h"
 #include "xstatus.h"
+#include "AXI_DMA/axi_dma.h"
+#include "dla/dla.h"
 
 #endif
 
@@ -53,6 +55,11 @@ public:
     */
     void conv2d(int f_w, int f_h, int k_w, int k_h, int channel, int stride, std::string padding, int N, float*** k, float* b, float f[3][224][224], float o[1024][224][224]);
     void conv2d(int f_w, int f_h, int k_w, int k_h, int channel, int stride, std::string padding, int N, float f[3][224][224], float o[1024][224][224]);
+    void conv2d(int f_w, int f_h, int k_w, int k_h, int channel, int stride, int N, 
+                AXI_DMA *DMA, dla *dla, 
+                u32* param_addr, int param_length, 
+                u32* fmap_addr, int fmap_length, 
+                u32* result_addr, int result_length);
 
     /**
      * @brief Used to compute depthwise Conv.

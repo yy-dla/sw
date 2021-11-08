@@ -2,7 +2,10 @@
 // #include "config.h"
 #include <string>
 #include "MobileNet.h"
-#include "image.h"
+// #include "image.h"
+
+#include "parameters/image_origin.h"
+#include "parameters/config_quant.h"
 
 
 #if defined __ARM__
@@ -14,6 +17,7 @@
 
 #if defined __ARM__ && defined __DMA__
 #include "AXI_DMA/axi_dma.h"
+#include "dla/dla.h"
 #endif
 
 #if defined __ARM__
@@ -91,45 +95,45 @@ int main()
 
     AXI_DMA dma;
 
-    int *a, *b;
+    dla MobileNet_dla;
 
-    // MobileNet m;
+    MobileNet model;
 
-    // m.writeReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET, 0xff);
+    u32 *param, *fmap;
 
-    // cout << m.readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) << endl;
+    u32 *result;
 
-    a = new int[216];
-    b = new int[220];
+    u32 *result_offset4 = result + 4;
 
-    for(int i = 0; i < 216; i++) {
-        a[i] = i;
+    param = new u32[248];
+    fmap = new u32[50176];
+    result = new u32[100352 + 4];
+
+    for(int i = 0; i < 248; i++) {
+        param[i] = config_quant[i];
     }
+
+    for(int i = 0; i < 50176; i++){
+        fmap[i] = image_orgin[i];
+    }
+
+    model.init();
 
     dma.resetDma();
 
     dma.setup();
 
-    // dma.setInterruptInit(TX_INTR_ID, RX_INTR_ID);
+    MobileNet_dla.enable();
 
-    for (int j = 0; j < 2; j++){
-        dma.writeReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET, 0x7);
+    model.conv2d(224, 224, 3, 3, 3, 2, 32, &dma, &MobileNet_dla, param, 0, fmap, 0, result, 0);
 
-        dma.trans_DMA_device(a, 216); // W
-
-        dma.writeReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET, 0x5);
-
-        dma.trans_device_DMA(b, 300); // R
-
-//        for (int i = 0; i < 216; i++){
-//            cout << b[i] << " ";
-//            // a[i] += b[i + 4];
-//        }
-//
-//        cout << endl;
-
-        
+    for(int i = 0; i < 10; i++){
+        cout << hex << *(result + 4 + i) << endl;
     }
+
+//    cout << hex << *result_offset4 << "  addr:" << result_offset4 <<endl;
+//    cout << hex << *result << "  addr:" << result<< endl;
+//    cout << hex << *(result + 4) << endl;
 
 #endif
 

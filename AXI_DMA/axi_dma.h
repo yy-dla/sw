@@ -14,23 +14,13 @@
 #define RX_INTR_ID        XPAR_FABRIC_AXI_DMA_0_S2MM_INTROUT_INTR
 #define TX_INTR_ID        XPAR_FABRIC_AXI_DMA_0_MM2S_INTROUT_INTR
 
-
-#define MOBILENET_S00_AXI_SLV_STATE_REG_OFFSET      0
-#define MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET     4
-#define MOBILENET_S00_AXI_SLV_F_W_OFFSET            8
-#define MOBILENET_S00_AXI_SLV_F_H_OFFSET            12
-#define MOBILENET_S00_AXI_SLV_STRIDE_OFFSET         16
-#define MOBILENET_S00_AXI_SLV_K_W_OFFSET            20
-#define MOBILENET_S00_AXI_SLV_K_H_OFFSET            24
-#define MOBILENET_S00_AXI_SLV_CHANNEL_OFFSET        28
-#define MOBILENET_S00_AXI_SLV_N_OFFSET              32
-
-#define MOBILENET_BASEADDR                          XPAR_MOBILENET_0_S00_AXI_BASEADDR
-
 class AXI_DMA
 {
 public:
     u16 Device_id = DMA_DEV_ID;
+
+private:
+    bool initDone = false;
 public:
     AXI_DMA();
     ~AXI_DMA();
@@ -41,22 +31,13 @@ public:
 
     void resetDma();
 
+    bool isInited();
+
     long int trans_DMA_device(u8* sendBuffer, int length);
 
-    long int trans_DMA_device(int* sendBuffer, int length);
+    long int trans_DMA_device(u32* sendBuffer, int length);
 
-    long int trans_device_DMA(int* receiveBuffer, int length);
-
-    /**
-     ** For ARM-9 registers reading and writing.
-    */
-    #if defined __ARM__
-
-    void writeReg(int offset, int data);
-
-    int readReg(int offset);
-
-    #endif
+    long int trans_device_DMA(u32* receiveBuffer, int length);
 
     static void rxIrqHandler(void *CallBackRef);
 
