@@ -29,7 +29,7 @@ bool dla::isBusy(){
     return (bool)(
         (
             readReg(MOBILENET_S00_AXI_SLV_STATE_REG_OFFSET) & DLA_IS_BUSY_Msk) 
-            >> DLA_IS_BUSY_POS
+            != 0
         );
 };
 
@@ -145,6 +145,25 @@ void dla::unsetCal(){
             DLA_DW_PW_CONV_CAL_Msk
         )
     );
+}
+
+void dla::setPingPong(u8 sel){
+    if(sel == PINGPONG_0)
+        writeReg(
+            MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET,
+            readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) & ~(DLA_PING_PONG_SEL_Msk)
+        );
+    else if(sel == PINGPONG_1)
+        writeReg(
+            MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET,
+            readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) | (DLA_PING_PONG_SEL_Msk)
+        );
+}
+void dla::unsetPingPong(){
+    writeReg(
+            MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET,
+            readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) & ~(DLA_PING_PONG_SEL_Msk)
+        );
 }
 
 void dla::writeReg(int offset, int data){

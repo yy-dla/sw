@@ -37,8 +37,11 @@
 #define DLA_DW_PW_CONV_CAL_POS 10
 #define DLA_DW_PW_CONV_CAL_Msk (0x1 << DLA_DW_PW_CONV_CAL_POS)
 
+#define DLA_PING_PONG_SEL_POS 11
+#define DLA_PING_PONG_SEL_Msk (0x1 << DLA_PING_PONG_SEL_POS)
+
 #define DLA_IS_BUSY_POS 1
-#define DLA_IS_BUSY_Msk (0x1 << DLA_IS_BUSY_POS)
+#define DLA_IS_BUSY_Msk (0x3 << DLA_IS_BUSY_POS)
 
 
 #define MOBILENET_S00_AXI_SLV_STATE_REG_OFFSET      0
@@ -67,6 +70,9 @@
 #define PW_CONV_CAL 2
 #define DW_PW_CONV_CAL 3
 
+#define PINGPONG_0 0
+#define PINGPONG_1 1
+
 class dla
 {
 private:
@@ -90,6 +96,9 @@ public:
 
     void startCal(u8 calType);
     void unsetCal();
+
+    void setPingPong(u8 Sel);
+    void unsetPingPong();
 
     /**
     ** For ARM-9 registers reading and writing.

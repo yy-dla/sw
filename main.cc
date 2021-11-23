@@ -2,11 +2,16 @@
 // #include "config.h"
 #include <string>
 #include "MobileNet.h"
-// #include "image.h"
+#include "utils.h"
 
+#if defined __WINDOWS__
+#include "parameters/image.h"
+#endif
+
+#ifdef __ARM__
 #include "parameters/image_origin.h"
 #include "parameters/config_quant.h"
-
+#endif
 
 #if defined __ARM__
 #include "xparameters.h"
@@ -44,13 +49,13 @@ int main()
 
     net.invoke(224, 224, 3, image, result);
 
-    for (int i = 0; i < 43; i++) {
+    for (int i = 0; i < 43; i++)
+    {
         printf("%lf \n", result[i]);
     }
 
     return 0;
-    
-    
+
 #endif
 #if defined __ARM__ && defined __CAL__
     int Status;
@@ -83,7 +88,8 @@ int main()
 
     cout << "Time elapsed: " << timeUsed << "s" << endl;
 
-    for (int i = 0; i < 43; i++) {
+    for (int i = 0; i < 43; i++)
+    {
         cout << result[i] << std::endl;
     }
 
@@ -101,21 +107,26 @@ int main()
 
     u32 *param, *fmap;
 
-    u32 *result;
+    u32 *result, *result_2;
 
-    u32 *result_offset4 = result + 4;
+    u8(*result_u8_2w)[32];
+    u8(*result_u8_2w_1)[32];
 
-    param = new u32[248];
+    param = new u32[280];
     fmap = new u32[50176];
     result = new u32[100352 + 4];
+    result_2 = new u32[100352 + 4];
 
-    for(int i = 0; i < 248; i++) {
-        param[i] = config_quant[i];
-    }
+    // for(int i = 0; i < 280; i++) {
+    //     param[i] = t_conv_config_quant[i];
+    // }
 
-    for(int i = 0; i < 50176; i++){
-        fmap[i] = image_orgin[i];
-    }
+    // for(int i = 0; i < 50176; i++){
+    //     fmap[i] = image_orgin[i];
+    // }
+
+    result_u8_2w = (u8(*)[32])(result + 4);
+    result_u8_2w_1 = (u8(*)[32])(result_2 + 4);
 
     model.init();
 
@@ -124,16 +135,35 @@ int main()
     dma.setup();
 
     MobileNet_dla.enable();
+    while (1)
+    {
+        __init_array(280, t_conv_config_quant, param);
+        __init_array(50176, image_orgin, fmap);
 
-    model.conv2d(224, 224, 3, 3, 3, 2, 32, &dma, &MobileNet_dla, param, 0, fmap, 0, result, 0);
+        model.conv2d(224, 224, 3, 3, 3, 2, 32, &dma, &MobileNet_dla, param, fmap, result);
 
-    for(int i = 0; i < 10; i++){
-        cout << hex << *(result + 4 + i) << endl;
+        for (int j = 0; j < 32; j++)
+        {
+            cout << (int)result_u8_2w[0][j] << ", ";
+        }
+        cout << endl;
+
+        __init_array(32 * 9 / 4 + 32 + 32, dw_conv_config_quant, param);
+
+        model.depthwiseConv2d(112, 112, 3, 3, 32, 1, 32, &dma, &MobileNet_dla, param, result + 4, result_2);
+
+        for (int j = 0; j < 32; j++)
+        {
+            cout << (int)result_u8_2w_1[0][j] << ", ";
+        }
+        cout << endl;
     }
 
-//    cout << hex << *result_offset4 << "  addr:" << result_offset4 <<endl;
-//    cout << hex << *result << "  addr:" << result<< endl;
-//    cout << hex << *(result + 4) << endl;
+    while (1);
+
+        //    cout << hex << *result_offset4 << "  addr:" << result_offset4 <<endl;
+        //    cout << hex << *result << "  addr:" << result<< endl;
+        //    cout << hex << *(result + 4) << endl;
 
 #endif
 
