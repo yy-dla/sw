@@ -40,8 +40,27 @@
 #define DLA_PING_PONG_SEL_POS 11
 #define DLA_PING_PONG_SEL_Msk (0x1 << DLA_PING_PONG_SEL_POS)
 
+#define DLA_READ_T_CONV_RAM_SEL_POS 12
+#define DLA_READ_T_CONV_RAM_SEL_Msk (0x1 << DLA_READ_T_CONV_RAM_SEL_POS)
+
+#define DLA_READ_DW_CONV_RAM_SEL_POS 13
+#define DLA_READ_DW_CONV_RAM_SEL_Msk (0x1 << DLA_READ_DW_CONV_RAM_SEL_POS)
+
+#define DLA_READ_PW_CONV_RAM_SEL_POS 14
+#define DLA_READ_PW_CONV_RAM_SEL_Msk (0x1 << DLA_READ_PW_CONV_RAM_SEL_POS)
+
+#define DLA_INVERT_RAM_SEL_POS 15
+#define DLA_INVERT_RAM_SEL_Msk (0x1 << DLA_INVERT_RAM_SEL_POS)
+
+
 #define DLA_IS_BUSY_POS 1
-#define DLA_IS_BUSY_Msk (0x3 << DLA_IS_BUSY_POS)
+#define DLA_IS_BUSY_Msk (0x7 << DLA_IS_BUSY_POS)
+
+#define DLA_PINGPONG_0_BUSY_POS 4
+#define DLA_PINGPONG_0_BUSY_Msk (0x1 << DLA_PINGPONG_0_BUSY_POS)
+
+#define DLA_PINGPONG_1_BUSY_POS 5
+#define DLA_PINGPONG_1_BUSY_Msk (0x1 << DLA_PINGPONG_1_BUSY_POS)
 
 
 #define MOBILENET_S00_AXI_SLV_STATE_REG_OFFSET      0
@@ -100,12 +119,27 @@ public:
     void setPingPong(u8 Sel);
     void unsetPingPong();
 
+    void readRAMSelect(u8 sel);
+    void readRAMUnselect();
+
+    /**
+    * @brief change the calculate method \n 
+    * 
+    ** false(default): always fmap -> dla -> result
+    ** true: if the cal is dw_conv, the direction of cal is result -> dla -> fmap
+    * 
+    * @param sel selection of cal method  
+    */
+    void ramInvert(bool sel);
+
     /**
     ** For ARM-9 registers reading and writing.
     */
     void writeReg(int offset, int data);
 
     unsigned int readReg(int offset);
+
+    bool pingpong_check(u8 sel);
 
 };
 

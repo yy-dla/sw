@@ -1,7 +1,7 @@
 #include "MobileNet.h"
 #include "math.h"
 
-#if defined __PARAM__
+#if defined __PARAM__ && defined __CAL__
 #include "parameters/config.h"
 #endif
 
@@ -220,14 +220,60 @@ void MobileNet::conv2d(
     dla->startCal(T_CONV_CAL);
 
     while(dla->isBusy());
-
     dla->unsetCal();
 
+    dla->readRAMSelect(T_CONV_RAM);
     dla->RAMSelect(RESULT_RAM);
     DMA->trans_device_DMA(result_addr, (f_w / stride) * (f_h / stride) * 8 + DMA_TRANSMIT_ALLOWANCE);
     // DMA->trans_device_DMA(result_addr, 100372);
     dla->RAMUnselect();
+    dla->readRAMUnselect();
 
+    return;
+    
+}
+
+void MobileNet::conv2d(int f_w, int f_h, int k_w, int k_h, int channel, int stride, int N,
+        AXI_DMA *DMA,
+        dla *dla,
+        u32* param_addr,
+        u32* fmap_addr    
+){
+    if(!DMA->isInited()) {
+        throw std::string("Please Init the DMA first.");
+        return;
+    }
+
+    dla->writeReg(MOBILENET_S00_AXI_SLV_F_W_OFFSET, f_w);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_F_H_OFFSET, f_h);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_K_W_OFFSET, k_w);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_K_H_OFFSET, k_h);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_CHANNEL_OFFSET, channel);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_STRIDE_OFFSET, stride);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_N_OFFSET, N);
+
+    dla->unsetPingPong();
+
+    dla->setRAM_RW(RAM_WRITE);
+
+    dla->RAMSelect(T_CONV_RAM);
+    DMA->trans_DMA_device(param_addr, ((k_w * k_h * channel * N) >> 2) + N + N);
+    // DMA->trans_DMA_device(param_addr, 280);
+    dla->RAMUnselect();
+
+    dla->RAMSelect(FMAP_RAM);
+    DMA->trans_DMA_device(fmap_addr, f_w * f_h);
+    // DMA->trans_DMA_device(fmap_addr, 50176);
+    dla->RAMUnselect();
+
+    dla->setRAM_RW(RAM_READ);
+
+    dla->startCal(T_CONV_CAL);
+
+    while(dla->isBusy());
+    dla->unsetCal();
+
+    return;
 }
 #endif
 
@@ -435,7 +481,6 @@ void MobileNet::depthwiseConv2d(
     while(dla->isBusy());
     dla->unsetCal(); 
 
-
     // for(int i = 0; i < (N >> 5); i++){
     //     dla->setPingPong(i & 0x1);
 
@@ -446,9 +491,48 @@ void MobileNet::depthwiseConv2d(
     //     // TODO: ping-pong buffer design
     // }
     
+    dla->readRAMSelect(DW_CONV_RAM);
     dla->RAMSelect(RESULT_RAM);
     DMA->trans_device_DMA(result_addr, (f_w / stride) * (f_h / stride) * 8 + DMA_TRANSMIT_ALLOWANCE);
     // DMA->trans_device_DMA(result_addr, 100372);
+    dla->RAMUnselect();
+    dla->readRAMUnselect();
+    
+    return;
+}
+
+void MobileNet::depthwiseConv2d(int f_w, int f_h, int k_w, int k_h, int channel, int stride, int N, 
+    AXI_DMA *DMA, dla *dla, 
+    u32* param_addr
+) {
+    if(!DMA->isInited()){
+        throw std::string("Please Init the DMA first.");
+        return;
+    }
+
+    dla->writeReg(MOBILENET_S00_AXI_SLV_F_W_OFFSET, f_w);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_F_H_OFFSET, f_h);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_K_W_OFFSET, k_w);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_K_H_OFFSET, k_h);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_CHANNEL_OFFSET, channel);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_STRIDE_OFFSET, stride);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_N_OFFSET, N);
+
+    dla->RAMSelect(DW_CONV_RAM);
+    dla->setRAM_RW(RAM_WRITE);
+
+    for(int i = 0; i < (channel >> 5); i++){
+        dla->setPingPong(i & 0x1);
+        while(dla->pingpong_check(i & 0x1));
+        DMA->trans_DMA_device(param_addr, 136); // 136 = 32(channel) * 9(kernel size) * 8(bit) / 32(Byte) + 32(bias) + 32(M)
+        param_addr += 136;
+        dla->startCal(DW_CONV_CAL);
+    }
+
+    while(dla->isBusy());
+    dla->unsetCal();
+
+    dla->setRAM_RW(RAM_READ);
     dla->RAMUnselect();
 }
 
@@ -515,6 +599,111 @@ void MobileNet::pointwiseConv2d(int f_w, int f_h, int channel, int N, float f[10
 
     return;
 }
+
+#if defined __ARM__
+
+void MobileNet::pointwiseConv2d(int f_w, int f_h, int channel, int N, 
+        AXI_DMA *DMA, dla *dla,
+        u32* param_addr,
+        u32* fmap_addr,
+        u32* result_addr
+) {
+    if(!DMA->isInited()){
+        throw std::string("Please Init the DMA first.");
+        return;
+    }
+
+    dla->writeReg(MOBILENET_S00_AXI_SLV_F_W_OFFSET, f_w);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_F_H_OFFSET, f_h);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_CHANNEL_OFFSET, channel);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_N_OFFSET, N);
+
+    dla->setRAM_RW(RAM_WRITE);
+
+    dla->RAMSelect(FMAP_RAM);
+    DMA->trans_DMA_device(fmap_addr, (f_w * f_h) * channel * 8 / 32);
+    dla->RAMUnselect();
+    
+    for(int n = 0; n < (N >> 5); n++){
+        dla->RAMSelect(PW_CONV_RAM);
+        if(channel >> 5 == 1){
+            while(dla->pingpong_check(n & 1));
+            dla->setPingPong(n & 1);
+            DMA->trans_DMA_device(param_addr, (32 * 32 * 8 / 32 + 32 + 32));
+            param_addr += 320;
+        }
+        else{
+            for (int c = 0; c < (channel >> 5); c++){
+
+            }
+        }
+        dla->startCal(PW_CONV_CAL);
+    }
+
+    while(dla->isBusy());
+    dla->unsetCal();    
+
+    dla->setRAM_RW(RAM_READ);
+    dla->readRAMSelect(PW_CONV_RAM);
+    dla->RAMSelect(RESULT_RAM);
+    DMA->trans_device_DMA(result_addr, (f_w * f_h * channel * N * 8  / 32 + DMA_TRANSMIT_ALLOWANCE));
+    dla->RAMUnselect();
+    dla->readRAMUnselect();
+
+    return;
+}
+
+void MobileNet::pointwiseConv2d(int f_w, int f_h, int channel, int N, 
+        AXI_DMA *DMA, dla *dla,
+        u32* param_addr
+){
+    int channel_offset = channel >> 5;
+    int N_offset = N >> 5;
+    bool pingpong_flag = false;
+
+    dla->writeReg(MOBILENET_S00_AXI_SLV_F_W_OFFSET, f_w);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_F_H_OFFSET, f_h);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_CHANNEL_OFFSET, channel);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_N_OFFSET, N);
+
+    dla->setRAM_RW(RAM_WRITE);
+    dla->RAMSelect(PW_CONV_RAM);
+
+    for(int n = 0; n < N_offset; n++){
+        if(channel_offset == 1){
+            while(dla->pingpong_check(pingpong_flag));
+            dla->setPingPong(pingpong_flag);
+            DMA->trans_DMA_device(param_addr, 320);    // 320 = 32(channel) * 32(N) * 8(bit) / 32(Byte) + 32(bias) + 32(M)
+            param_addr += 320;
+            pingpong_flag = !pingpong_flag;
+            dla->startCal(PW_CONV_CAL);
+        }
+        else{
+            for (int c = 0; c < channel_offset; c++){
+                while(dla->pingpong_check(pingpong_flag));
+                dla->setPingPong(pingpong_flag);
+                if(c == channel_offset - 1) {
+                    DMA->trans_DMA_device(param_addr, 320);
+                    param_addr += 320;
+                } else {
+                    DMA->trans_DMA_device(param_addr, 256); // 256 = 32(channel) * 32(N) * 8(bit) / 32(Byte)
+                    param_addr += 256;
+                }
+                pingpong_flag = !pingpong_flag;
+                dla->startCal(PW_CONV_CAL);
+            }
+        }
+    }
+
+    while(dla->isBusy());
+    dla->unsetCal();
+
+    dla->setRAM_RW(RAM_READ);
+    dla->RAMUnselect();
+    return;
+}
+
+#endif
 
 void MobileNet::batchNormalization(int f_w, int f_h, int channel, float f[1024][224][224], float* gamma, float* beta, float* mean, float* variance, float r = 0.003) {
     for (int c = 0; c < channel; c++) {
@@ -650,7 +839,7 @@ void MobileNet::invoke(int w, int h, int channel, float image[3][224][224], floa
 
     // Start the Invoke process:
     // 
-    
+#if defined __CAL__
     // std::cout << "proceed 1" << std::endl;
 
     //__allocate_mem_3d(32, 3, 9, this->conv2d_weight);
@@ -964,8 +1153,32 @@ void MobileNet::invoke(int w, int h, int channel, float image[3][224][224], floa
 
     // std::cout << "softmax" << std::endl;
     this->softmax(43, denseMap, result);
+#endif
 
 }
+
+#if defined __ARM__
+void MobileNet::getResult(int f_w, int f_h, int channel, int N, AXI_DMA *DMA, dla *dla, u32* result){
+    dla->writeReg(MOBILENET_S00_AXI_SLV_F_W_OFFSET, f_w);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_F_H_OFFSET, f_h);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_CHANNEL_OFFSET, channel);
+    dla->writeReg(MOBILENET_S00_AXI_SLV_N_OFFSET, N);
+
+    dla->setRAM_RW(RAM_READ);
+    dla->RAMSelect(RESULT_RAM);
+
+    dla->readRAMSelect(PW_CONV_RAM);
+
+    DMA->trans_device_DMA(result, (f_w * f_h * channel * N * 8  / 32 + DMA_TRANSMIT_ALLOWANCE));
+
+    dla->readRAMUnselect();
+    dla->RAMUnselect();
+
+    // result = result + 4;
+
+    return;
+}
+#endif
 
 void MobileNet::init()
 {

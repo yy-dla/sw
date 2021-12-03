@@ -63,6 +63,13 @@ public:
         u32* fmap_addr,
         u32* result_addr
     );
+
+    void conv2d(int f_w, int f_h, int k_w, int k_h, int channel, int stride, int N,
+        AXI_DMA *DMA,
+        dla *dla,
+        u32* param_addr,
+        u32* fmap_addr    
+    );
 #endif
 
     /**
@@ -89,6 +96,10 @@ public:
         u32* fmap_addr,
         u32* result_addr
     );
+    void depthwiseConv2d(int f_w, int f_h, int k_w, int k_h, int channel, int stride, int N, 
+        AXI_DMA *DMA, dla *dla, 
+        u32* param_addr
+    );
 #endif
 
     /**
@@ -105,6 +116,19 @@ public:
     */
     void pointwiseConv2d(int f_w, int f_h, int channel, int N, float** k, float* b, float f[1024][224][224], float o[1024][224][224]);
     void pointwiseConv2d(int f_w, int f_h, int channel, int N, float f[1024][224][224], float o[1024][224][224]);
+#if defined __ARM__
+    void pointwiseConv2d(int f_w, int f_h, int channel, int N, 
+        AXI_DMA *DMA, dla *dla,
+        u32* param_addr,
+        u32* fmap_addr,
+        u32* result_addr
+    );
+
+    void pointwiseConv2d(int f_w, int f_h, int channel, int N, 
+        AXI_DMA *DMA, dla *dla,
+        u32* param_addr
+    );
+#endif
 
     /**
      * @brief Batch Normalization.
@@ -112,11 +136,11 @@ public:
      * @param f_w input feature map width
      * @param f_h input feature map height
      * @param channel channel size
-     * @param gamma[channel] gamma array (��)
-     * @param beta[channel]  beta array (��)
-     * @param mean[channel]  the mean of the data after train (��)
-     * @param variance[channel] the variance of the data after train (��^2)
-     * @param r the redundant part (��), default 0.003
+     * @param gamma[channel] gamma array
+     * @param beta[channel]  beta array
+     * @param mean[channel]  the mean of the data after train
+     * @param variance[channel] the variance of the data after train
+     * @param r the redundant part, default 0.003
      * @param f[][][] feature map
     */
     void batchNormalization(int f_w, int f_h, int channel, float f[1024][224][224], float* gamma, float* beta, float* mean, float* variance, float r);
@@ -185,6 +209,10 @@ public:
      * @brief Start prediction.
     */
     void invoke(int w, int h, int channel, float image[3][224][224], float result[43]);
+
+#if defined __ARM__
+    void getResult(int f_w, int f_h, int channel, int N, AXI_DMA *DMA, dla *dla, u32* result);
+#endif
 
     void init();
 };

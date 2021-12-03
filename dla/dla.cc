@@ -159,10 +159,61 @@ void dla::setPingPong(u8 sel){
             readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) | (DLA_PING_PONG_SEL_Msk)
         );
 }
+
 void dla::unsetPingPong(){
     writeReg(
             MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET,
             readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) & ~(DLA_PING_PONG_SEL_Msk)
+        );
+}
+
+void dla::readRAMSelect(u8 sel){
+    switch (sel)
+    {
+    case T_CONV_RAM:
+        writeReg(
+            MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET,
+            readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) | DLA_READ_T_CONV_RAM_SEL_Msk
+        );
+        break;
+    case DW_CONV_RAM:
+        writeReg(
+            MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET,
+            readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) | DLA_READ_DW_CONV_RAM_SEL_Msk
+        );
+    case PW_CONV_RAM:
+        writeReg(
+            MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET,
+            readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) | DLA_READ_PW_CONV_RAM_SEL_Msk
+        );
+        break;
+    default:
+        throw "Invalid read RAM selection.";
+        break;
+    }
+}
+
+void dla::readRAMUnselect(){
+    writeReg(
+        MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET,
+        readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) & ~(
+            DLA_READ_T_CONV_RAM_SEL_Msk  |
+            DLA_READ_DW_CONV_RAM_SEL_Msk |
+            DLA_READ_PW_CONV_RAM_SEL_Msk 
+        )
+    );
+}
+
+void dla::ramInvert(bool sel){
+    if(sel)
+        writeReg(
+            MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET,
+            readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) | DLA_INVERT_RAM_SEL_Msk
+        );
+    else
+        writeReg(
+            MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET,
+            readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) & ~DLA_INVERT_RAM_SEL_Msk
         );
 }
 
@@ -172,4 +223,23 @@ void dla::writeReg(int offset, int data){
 
 unsigned int dla::readReg(int offset){
     return Xil_In32(MOBILENET_BASEADDR + offset);
+}
+
+bool dla::pingpong_check(u8 sel){
+    if(sel == PINGPONG_0)
+        if((readReg(
+            MOBILENET_S00_AXI_SLV_STATE_REG_OFFSET
+        ) & DLA_PINGPONG_0_BUSY_Msk) >> DLA_PINGPONG_0_BUSY_POS)
+            return true;
+        else
+            return false;
+    else if(sel == PINGPONG_1)
+        if((readReg(
+            MOBILENET_S00_AXI_SLV_STATE_REG_OFFSET
+        ) & DLA_PINGPONG_1_BUSY_Msk) >> DLA_PINGPONG_1_BUSY_POS)
+            return true;
+        else
+            return false;
+    else
+        return false;
 }
