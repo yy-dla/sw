@@ -128,7 +128,12 @@ void dla::startCal(u8 calType){
             readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) | DLA_DW_PW_CONV_CAL_Msk
         );
         break;
-    
+    case GLOBAL_AVG_POOL: 
+        writeReg(
+            MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET,
+            readReg(MOBILENET_S00_AXI_SLV_CONFIG_REG_OFFSET) | DLA_GLOBAL_AVG_POOL_SEL_Msk
+        );
+        break;
     default:
         throw "Invalid calcuation type.";
         break;
@@ -142,7 +147,8 @@ void dla::unsetCal(){
             DLA_T_CONV_CAL_Msk |
             DLA_DW_CONV_CAL_Msk |
             DLA_PW_CONV_CAL_Msk |
-            DLA_DW_PW_CONV_CAL_Msk
+            DLA_DW_PW_CONV_CAL_Msk |
+            DLA_GLOBAL_AVG_POOL_SEL_Msk
         )
     );
 }

@@ -175,6 +175,11 @@ public:
      * @param o[] map after compute
     */
     void globalAvgPool2D(int f_w, int f_h, int channel, float f[1024][224][224], float o[]);
+#if defined __ARM__
+    void globalAvgPool2D(int f_w, int f_h, int channel, 
+        AXI_DMA *DMA,
+        dla *dla);
+#endif
 
     /**
      * @brief Flatten the feature into single dimension.
