@@ -830,6 +830,19 @@ void MobileNet::dense(int l_i, int l_o, float i[], float o[]) {
     return;
 }
 
+#ifdef __ARM__
+void MobileNet::dense(int l_i, int l_o, AXI_DMA *DMA, dla *dla, u32 *param_addr){
+    /**
+     *  |         32        |
+     *  |   11   |     0    |
+     */
+    
+    pointwiseConv2d(1, 1, 1024, 64, DMA, dla, param_addr);
+
+    return;
+}
+#endif
+
 void MobileNet::softmax(int l, float i[], float o[]) {
     double sum = 0.0;
     double t_f = 0.0;
@@ -1189,7 +1202,7 @@ void MobileNet::getResult(int f_w, int f_h, int channel, int N, AXI_DMA *DMA, dl
     dla->setRAM_RW(RAM_READ);
     dla->RAMSelect(RESULT_RAM);
 
-    dla->readRAMSelect(T_CONV_RAM);
+    dla->readRAMSelect(PW_CONV_RAM);
 
     DMA->trans_device_DMA(result, (f_w * f_h * channel * N * 8  / 32 + DMA_TRANSMIT_ALLOWANCE));
 

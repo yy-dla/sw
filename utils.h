@@ -9,4 +9,7 @@
     for(int i = 0; i < len; i++)\
         arr[i] = 0;
 
+#define __addr_offset(len, addr)\
+    addr += len;
+
 #endif // !__UTILS_H__

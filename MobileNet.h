@@ -200,6 +200,9 @@ public:
     */
     void dense(int l_i, int l_o, float** k, float* b, float i[], float o[]);
     void dense(int l_i, int l_o, float i[], float o[]);
+#ifdef __ARM__
+    void dense(int l_i, int l_o, AXI_DMA *DMA, dla *dla, u32 *param_addr);
+#endif
 
     /**
      * @brief Compute the Softmax.
