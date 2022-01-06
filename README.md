@@ -21,6 +21,7 @@ Here is the float32 MobileNet Confusion Matrix:
 </center>  
 
 # Run time
+After designing of the MobileNet Accelerator, the performance of this work and other platforms should be shown below:
 |Platform|Frequency|Data type|Run time|Power/W|
 |-|-|-|-|-|
 |CPU|3.98 GHz|INT8-TFLite|3.5432 s|30.83|
@@ -30,13 +31,17 @@ Here is the float32 MobileNet Confusion Matrix:
 |GPU|1.56 GHz|float32|42.8847 ms|47.70|
 |PS-Cortex_A9|666.67 MHz|float32|82.6402 s|1.54|
 |Accelerator|50.00 MHz|INT8|54.1067 ms|2.29|
+> CPU: Intel i5-9300H  
+> GPU: NVIDIA GTX1650  
+> PS and Accelerator: Zynq xc7z100  
   
 # Some notice
+
 |Platform|pre-define|
 |:-|:-|
 |Windows|`__WINDOWS__`|
 |Cortex-A9|`__ARM__`|  
-|Accelerate| `__DMA__`|
+|Accelerate| `__DMA__` and `__ARM__`|
 
 If you use Cortex-A9 platform, do not forget to adjust the heap size to `0x1fffffff` in file `lscript.ld` to prevent the overflow.
 
